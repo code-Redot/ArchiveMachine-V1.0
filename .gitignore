@@ -1,0 +1,14 @@
+# Build outputs
+/target/
+/build/
+
+# IDE files
+.idea/
+*.iml
+
+# Compiled classes
+*.class
+
+# OS junk
+.DS_Store
+Thumbs.db

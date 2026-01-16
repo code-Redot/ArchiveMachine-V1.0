@@ -1,34 +1,73 @@
 # ArchiveMachine
 
-## Version: 0.9.5 Beta
+Java 17 JavaFX (MVP) desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression.
 
-ArchiveMachine is a tool designed to manage and archive files and folders by automating the process of copying them from a source to a destination, while providing various controls. This project is currently in the beta stage.
+Credits & rights: **code-Redot** — https://github.com/code-Redot
 
-## Update
-- 31st March 2024: standardized imports and fixed counting to the -1, fixed an error ragarding the shortcuts ignoring.
-- 1th June 2023: Added Filtiration Functionality (ShortCuts only)
-- 9th April 2023: Added GUI (JavaFX)
+## Requirements
+- Java 17+
+- Windows recommended (supports Windows shortcuts skipping; works on other OSes too)
+- Optional: 7‑Zip CLI available via PATH (`7z`) or configured in the UI.
+
+## Run
+
+### Maven (recommended)
+```bash
+mvn javafx:run
+```
+
+### Gradle
+```bash
+./gradlew run
+```
 
 ## Features
 
-The following features are anticipated in future releases:
+### Destination modes (date bucketing)
+The app resolves a destination **date bucket folder** per level-0 item using one of:
+- **Transfer date**
+- **Creation date** (falls back to last modified if creation time is unavailable)
+- **Last modified date**
 
-* Filtration functions: The ability to ignore specific files, folders, or shortcuts during the archiving process.
-* Integration of Compression/Decompression: Support for compressing and decompressing files using popular formats such as 7zip or rar.
+Date folder format is deterministic: `MMM yyyy` with `Locale.ENGLISH`.
 
-## Usage
+Base layout (no partitioning):
+```
+\Destination\MMM yyyy\<ItemName>
+```
 
-To use ArchiveMachine, follow these steps:
+### Skip shortcuts (.lnk/.url + symlink/junction avoidance)
+When enabled:
+- Skips transferring `*.lnk` and `*.url` files.
+- Does not follow directory links during traversal.
+- Skips linked directories (symbolic links / reparse points) by skipping the subtree.
 
-1. Download the latest release of ArchiveMachine from the Releases section of this GitHub repository.
-2. Install any necessary dependencies or software required by ArchiveMachine (not a stand alone program currently).
-3. Launch the application.
-4. Specify the source directory containing the files and folders you want to archive.
-5. Specify the destination directory where you want the archived files to be copied.
-6. Configure any additional controls or options based on your requirements.
-7. Start the archiving process and wait for it to complete.
-8. Verify the archived files in the destination directory.
+### Partitioning (Partition item limit)
+Partitions are based on **level‑0 item count**.
 
-## Contributing
+Folder layout:
+```
+\Destination\MMM yyyy\P1\<ItemName>
+\Destination\MMM yyyy\P2\<ItemName>
+...
+```
 
-Forking contributions to ArchiveMachine are welcome! It will not be merged into master since i am personnally taking it as a solo project.
+Behavior:
+- If **limit <= 0**: partitioning is disabled (no `P#` folder).
+- If **limit > 0**: the first `limit` level‑0 items for a given date bucket go to `P#`, then the next `limit` go to the next `P#`, etc.
+
+#### Re-run rule (do not reuse existing partitions)
+On a re-run, for each date bucket directory:
+- If `P1`, `P2`, ... already exist, the run starts at **(max existing P + 1)**.
+- New items are never placed into an already-existing `P#` for that same date bucket.
+
+Example:
+- limit = 100
+- `\Destination\MMM yyyy\P1` and `P2` already exist
+- the next run starts at `P3` (first 100 items -> `P3`, next 100 -> `P4`, ...)
+
+### Decompression (7‑Zip)
+When enabled, after transfer of a supported archive (`.rar/.7z/.zip`), the app runs 7‑Zip to decompress the archive into the same final destination path used by the transfer.
+
+### Window behavior
+The main window is fixed-size (non-resizable).
