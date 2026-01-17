@@ -2,12 +2,10 @@
 
 Java 17 JavaFX (MVP) desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression.
 
-Credits & rights: **code-Redot** — https://github.com/code-Redot
-
 ## Requirements
 - Java 17+
-- Windows recommended (supports Windows shortcuts skipping; works on other OSes too)
-- Optional: 7‑Zip CLI available via PATH (`7z`) or configured in the UI.
+- Windows recommended (supports Windows shortcuts skipping, not tested in other OS)
+- 7‑Zip CLI available via PATH (`7z`) or configured in the UI.
 
 ## Run
 
