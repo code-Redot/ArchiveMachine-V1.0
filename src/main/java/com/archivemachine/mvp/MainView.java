@@ -79,12 +79,6 @@ public final class MainView implements MainViewContract {
     public MainView(Stage stage) {
         this.stage = stage;
 
-        // ---- header bar (info button) -------------------------------------
-        Button infoBtn = new Button("ℹ");
-        infoBtn.setFocusTraversable(false);
-        infoBtn.setTooltip(new Tooltip("About"));
-        infoBtn.setOnAction(e -> showAboutDialog());
-
         // ---- pipeline tab --------------------------------------------------
         Button srcBtn = new Button("Browse...");
         Button dstBtn = new Button("Browse...");
@@ -180,15 +174,16 @@ public final class MainView implements MainViewContract {
         ignoreBox.setPadding(new Insets(14));
 
         // ---- help tab ------------------------------------------------------
+        // ASCII-only on purpose: keeps the source build-encoding-independent.
         VBox helpBox = new VBox(10,
                 bold("ArchiveMachine 1.1"),
                 new Label("Transfers level-0 items from a source directory to an organized destination."),
                 separator(),
                 bold("Organize-by modes"),
-                new Label("• Transfer date — today's MMM yyyy"),
-                new Label("• Creation date — the item's creation time"),
-                new Label("• Last modified — the item's last write time"),
-                new Label("• First letter — A..Z / 0-9 / # bucket"),
+                new Label("- Transfer date    : today's MMM yyyy"),
+                new Label("- Creation date    : the item's creation time"),
+                new Label("- Last modified    : the item's last write time"),
+                new Label("- First letter     : A..Z / 0-9 / # bucket"),
                 separator(),
                 bold("Partitioning"),
                 new Label("Limit > 0 caps items per bucket. On re-run, partitions resume at (max P + 1)."),
@@ -209,15 +204,7 @@ public final class MainView implements MainViewContract {
         TabPane tabs = new TabPane(pipelineTab, ignoreTab, helpTab);
         tabs.setPrefWidth(640);
 
-        BorderPane top = new BorderPane();
-        top.setPadding(new Insets(6, 10, 0, 0));
-        top.setRight(infoBtn);
-
-        BorderPane shell = new BorderPane();
-        shell.setTop(top);
-        shell.setCenter(tabs);
-
-        this.root = shell;
+        this.root = tabs;
     }
 
     private void pickSevenZip() {
@@ -283,22 +270,6 @@ public final class MainView implements MainViewContract {
         } catch (Exception ex) {
             showError("Failed to open link: " + ex.getMessage());
         }
-    }
-
-    private void showAboutDialog() {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle("About");
-        a.setHeaderText("ArchiveMachine 1.1");
-
-        Label createdBy = new Label("Created by code-Redot");
-        Hyperlink ghLink = new Hyperlink(GITHUB_URL);
-        ghLink.setOnAction(e -> openExternalLink(GITHUB_URL));
-        HBox ghRow = new HBox(6, new Label("GitHub:"), ghLink);
-        ghRow.setAlignment(Pos.CENTER_LEFT);
-
-        VBox content = new VBox(8, createdBy, ghRow);
-        a.getDialogPane().setContent(content);
-        a.showAndWait();
     }
 
     public Parent getRoot() { return root; }
