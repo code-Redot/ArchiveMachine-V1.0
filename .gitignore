@@ -1,21 +1,47 @@
-# Build outputs
+# --- build outputs ---
 /target/
 /build/
 /dist/
+/out/
+*.class
 
-# IDE files
+# --- IDE / tool state (often contains absolute paths and personal config) ---
 .idea/
 *.iml
 .vscode/
 .claude/
 .gradle/
 
-# Compiled classes
-*.class
-
-# OS junk
+# --- OS junk ---
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Bundled 7-Zip installer (not committed; see src/main/resources/installers/README.txt)
+# --- editor backup / merge artifacts ---
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# --- JVM crash dumps and arbitrary logs (may leak paths/usernames) ---
+hs_err_pid*.log
+replay_pid*.log
+*.log
+
+# --- secrets / credentials (defense in depth; nothing here should ever ship) ---
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+
+# --- Bundled 7-Zip installer (drop locally before build; not ours to redistribute) ---
 src/main/resources/installers/7z-installer.exe
