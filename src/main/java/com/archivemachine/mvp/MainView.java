@@ -62,8 +62,8 @@ public final class MainView implements MainViewContract {
     private final Button resumeBtn = new Button("Resume");
     private final Button cancelBtn = new Button("Cancel");
     private final Button resetBtn = new Button("Reset");
-    private final Button addIgnoreFileBtn = new Button("Add file...");
-    private final Button addIgnoreFolderBtn = new Button("Add folder...");
+    private final Button addIgnoreFileBtn = new Button("Add files...");
+    private final Button addIgnoreFolderBtn = new Button("Add folders...");
     private final Button removeIgnoreBtn = new Button("Remove selected");
 
     // presenter callbacks
@@ -350,29 +350,78 @@ public final class MainView implements MainViewContract {
     }
 
     @Override
-    public String chooseFileToIgnore() {
+    public List<String> chooseFilesToIgnore() {
         FileChooser fc = new FileChooser();
-        fc.setTitle("Choose a file to ignore");
+        fc.setTitle("Choose files to ignore");
         seedChooserFromSource(fc, null);
-        File f = fc.showOpenDialog(stage);
-        return f == null ? null : f.getAbsolutePath();
+        List<File> files = fc.showOpenMultipleDialog(stage);
+        if (files == null || files.isEmpty()) return List.of();
+        return files.stream().map(File::getAbsolutePath).toList();
     }
 
     @Override
-    public String chooseFolderToIgnore() {
-        DirectoryChooser dc = new DirectoryChooser();
-        dc.setTitle("Choose a folder to ignore");
-        File f = dc.showDialog(stage);
-        return f == null ? null : f.getAbsolutePath();
+    public List<String> chooseFoldersToIgnore() {
+        File sourceDir = currentSourceDir();
+        if (sourceDir == null) {
+            // No source set yet -> fall back to native single-folder picker.
+            DirectoryChooser dc = new DirectoryChooser();
+            dc.setTitle("Choose a folder to ignore");
+            File f = dc.showDialog(stage);
+            return f == null ? List.of() : List.of(f.getAbsolutePath());
+        }
+        return showFolderMultiPicker(sourceDir);
+    }
+
+    /** Custom dialog: lists immediate subfolders of {@code parent} with multi-select. */
+    private List<String> showFolderMultiPicker(File parent) {
+        File[] kids = parent.listFiles(File::isDirectory);
+        if (kids == null || kids.length == 0) {
+            Alert info = new Alert(Alert.AlertType.INFORMATION,
+                    "No subfolders found in " + parent.getAbsolutePath(), ButtonType.OK);
+            info.setHeaderText("Nothing to pick");
+            info.showAndWait();
+            return List.of();
+        }
+        java.util.Arrays.sort(kids, java.util.Comparator.comparing(f -> f.getName().toLowerCase()));
+
+        ListView<File> lv = new ListView<>();
+        lv.getItems().setAll(kids);
+        lv.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        lv.setCellFactory(list -> new ListCell<>() {
+            @Override protected void updateItem(File item, boolean empty) {
+                super.updateItem(item, empty);
+                setText((empty || item == null) ? null : item.getName());
+            }
+        });
+        lv.setPrefHeight(320);
+        lv.setPrefWidth(420);
+
+        Dialog<List<File>> dlg = new Dialog<>();
+        dlg.initOwner(stage);
+        dlg.setTitle("Choose folders to ignore");
+        dlg.setHeaderText("Inside: " + parent.getAbsolutePath()
+                + "\nCtrl-click or Shift-click to select multiple.");
+        dlg.getDialogPane().setContent(lv);
+        dlg.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.setResultConverter(bt -> bt == ButtonType.OK
+                ? List.copyOf(lv.getSelectionModel().getSelectedItems())
+                : List.of());
+
+        List<File> picked = dlg.showAndWait().orElse(List.of());
+        return picked.stream().map(File::getAbsolutePath).toList();
+    }
+
+    private File currentSourceDir() {
+        String src = sourceField.getText();
+        if (src == null || src.isBlank()) return null;
+        File d = new File(src.trim());
+        return d.isDirectory() ? d : null;
     }
 
     private void seedChooserFromSource(FileChooser fc, DirectoryChooser dc) {
-        String src = sourceField.getText();
-        if (src == null || src.isBlank()) return;
-        File d = new File(src.trim());
-        if (d.isDirectory()) {
-            if (fc != null) fc.setInitialDirectory(d);
-            if (dc != null) dc.setInitialDirectory(d);
-        }
+        File d = currentSourceDir();
+        if (d == null) return;
+        if (fc != null) fc.setInitialDirectory(d);
+        if (dc != null) dc.setInitialDirectory(d);
     }
 }

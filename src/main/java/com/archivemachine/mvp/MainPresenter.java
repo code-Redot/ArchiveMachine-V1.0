@@ -190,16 +190,12 @@ public final class MainPresenter implements PipelineEventListener {
 
     private void addIgnoreFile() {
         if (view == null) return;
-        String p = view.chooseFileToIgnore();
-        if (p == null || p.isBlank()) return;
-        appendIgnoredAndPersist(p);
+        appendIgnoredAndPersist(view.chooseFilesToIgnore());
     }
 
     private void addIgnoreFolder() {
         if (view == null) return;
-        String p = view.chooseFolderToIgnore();
-        if (p == null || p.isBlank()) return;
-        appendIgnoredAndPersist(p);
+        appendIgnoredAndPersist(view.chooseFoldersToIgnore());
     }
 
     private void removeIgnoreSelected(String selected) {
@@ -211,9 +207,15 @@ public final class MainPresenter implements PipelineEventListener {
         persistIgnored(next);
     }
 
-    private void appendIgnoredAndPersist(String path) {
+    private void appendIgnoredAndPersist(List<String> picked) {
+        if (picked == null || picked.isEmpty()) return;
         List<String> next = new ArrayList<>(view.getIgnoredPaths());
-        if (!next.contains(path)) next.add(path);
+        boolean changed = false;
+        for (String p : picked) {
+            if (p == null || p.isBlank()) continue;
+            if (!next.contains(p)) { next.add(p); changed = true; }
+        }
+        if (!changed) return;
         view.setIgnoredPaths(next);
         persistIgnored(next);
     }

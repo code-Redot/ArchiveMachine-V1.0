@@ -49,7 +49,7 @@ public interface MainViewContract {
     /** Returns true if the user confirms installation. */
     boolean confirmInstallSevenZip(String message);
 
-    /** Modal "Pick a file/folder to ignore". Returns absolute path or null. */
-    String chooseFileToIgnore();
-    String chooseFolderToIgnore();
+    /** Modal multi-select picker. Returns absolute paths (empty list if user cancelled). */
+    List<String> chooseFilesToIgnore();
+    List<String> chooseFoldersToIgnore();
 }
