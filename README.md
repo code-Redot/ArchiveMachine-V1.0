@@ -1,21 +1,13 @@
 # ArchiveMachine 1.1
 
-Java 17 / JavaFX desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression. Strict MVP architecture, single-threaded pipeline, persistent settings.
+Java 17 JavaFX (MVP) desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression.
 
 Credits & rights: **code-Redot** — https://github.com/code-Redot
 
-## What's new in 1.1
-- **Ignore list** — pick files/folders to exclude from a run.
-- **First-letter bucketing** — organize destination by item's leading character (A..Z, 0-9, #).
-- **7-Zip auto-detect + bundled-installer prompt** — on first run, the app checks PATH, the configured path, and common Program Files locations. If nothing is found and a bundled installer is present, the app offers a silent install.
-- **Tabbed UI** — *Pipeline*, *Ignored items*, *Help/About*.
-- **Audit fixes** — refuses to silently overwrite existing destinations on cross-volume moves, case-insensitive source/destination containment check on Windows, system housekeeping folders/files (`$RECYCLE.BIN`, `System Volume Information`, `desktop.ini`, …) are auto-filtered, archive-into-extract-dir name collision is suffixed instead of clobbering.
-- **Full restructure** — packages renamed to `com.archivemachine.*` and split into `app` / `mvp` / `core` / `io`. Pipeline math extracted from the presenter into `core.pipeline.PipelinePlanner`.
-
 ## Requirements
 - Java 17+
-- Windows recommended (system-folder filter + bundled-installer prompt are Windows-aware; the core pipeline works on any OS)
-- Optional: 7‑Zip CLI on PATH (`7z`) or configured in the Pipeline tab.
+- Windows recommended (supports Windows shortcuts skipping; works on other OSes too)
+- Optional: 7‑Zip CLI available via PATH (`7z`) or configured in the UI.
 
 ## Run
 
