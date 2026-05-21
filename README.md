@@ -1,13 +1,21 @@
-# ArchiveMachine
+# ArchiveMachine 1.1
 
-Java 17 JavaFX (MVP) desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression.
+Java 17 / JavaFX desktop app that transfers **level-0** items from a source directory to a destination directory, with optional 7‑Zip decompression. Strict MVP architecture, single-threaded pipeline, persistent settings.
 
 Credits & rights: **code-Redot** — https://github.com/code-Redot
 
+## What's new in 1.1
+- **Ignore list** — pick files/folders to exclude from a run.
+- **First-letter bucketing** — organize destination by item's leading character (A..Z, 0-9, #).
+- **7-Zip auto-detect + bundled-installer prompt** — on first run, the app checks PATH, the configured path, and common Program Files locations. If nothing is found and a bundled installer is present, the app offers a silent install.
+- **Tabbed UI** — *Pipeline*, *Ignored items*, *Help/About*.
+- **Audit fixes** — refuses to silently overwrite existing destinations on cross-volume moves, case-insensitive source/destination containment check on Windows, system housekeeping folders/files (`$RECYCLE.BIN`, `System Volume Information`, `desktop.ini`, …) are auto-filtered, archive-into-extract-dir name collision is suffixed instead of clobbering.
+- **Full restructure** — packages renamed to `com.archivemachine.*` and split into `app` / `mvp` / `core` / `io`. Pipeline math extracted from the presenter into `core.pipeline.PipelinePlanner`.
+
 ## Requirements
 - Java 17+
-- Windows recommended (supports Windows shortcuts skipping; works on other OSes too)
-- Optional: 7‑Zip CLI available via PATH (`7z`) or configured in the UI.
+- Windows recommended (system-folder filter + bundled-installer prompt are Windows-aware; the core pipeline works on any OS)
+- Optional: 7‑Zip CLI on PATH (`7z`) or configured in the Pipeline tab.
 
 ## Run
 
@@ -21,53 +29,68 @@ mvn javafx:run
 ./gradlew run
 ```
 
+## Build the exe (1.1 release)
+
+You'll produce two artifacts: a portable app-image and a Windows MSI.
+
+```powershell
+# 1. Build the shaded fat-jar
+mvn -DskipTests package
+
+# 2. Portable image  -> dist\ArchiveMachine\ArchiveMachine.exe
+powershell -ExecutionPolicy Bypass -File .\packaging\jpackage-portable.ps1
+
+# 3. MSI installer   -> dist\ArchiveMachine-1.1.0.msi
+#    (requires WiX Toolset on PATH)
+powershell -ExecutionPolicy Bypass -File .\packaging\jpackage-msi.ps1
+```
+
+## 7-Zip install (bundled)
+Drop the official 7-Zip installer at `src/main/resources/installers/7z-installer.exe` before building. See `src/main/resources/installers/README.txt`. The installer is **not committed to git** — fetch it from https://www.7-zip.org/download.html.
+
+If no installer is bundled, the app still works; the missing-7z prompt becomes a "download manually" message instead.
+
+## Architecture (MVP + core/io)
+
+```
+com.archivemachine
+├── app/             — JavaFX bootstrap (Main)
+├── mvp/             — MainView, MainViewContract, MainPresenter
+├── core/
+│   ├── pipeline/    — PipelinePlanner, PipelineEventListener
+│   ├── task/        — TaskManager, CoreTask, TaskState, runtime/TaskRuntime
+│   ├── destination/ — BucketStrategy + 4 strategies + DestinationResolver + DestinationMode
+│   ├── tasks/       — TransferMoveTask, Decompress7ZipTask
+│   ├── settings/    — CoreSettings (record), SettingsStore (java.util.prefs)
+│   └── util/        — ArchiveType, Level0Enumerator, PathSafety
+└── io/
+    └── sevenzip/    — SevenZipLocator, SevenZipInstaller
+```
+
 ## Features
 
-### Destination modes (date bucketing)
-The app resolves a destination **date bucket folder** per level-0 item using one of:
-- **Transfer date**
-- **Creation date** (falls back to last modified if creation time is unavailable)
-- **Last modified date**
+### Organize by
+- **Transfer date** — current `MMM yyyy`
+- **Creation date** — the item's creation time (falls back to last-modified)
+- **Last modified** — the item's last write time
+- **First letter** — `A..Z` / `0-9` / `#`
 
-Date folder format is deterministic: `MMM yyyy` with `Locale.ENGLISH`.
+### Skip shortcuts
+Skips `*.lnk`, `*.url` and avoids following symbolic links / Windows junctions.
 
-Base layout (no partitioning):
+### Ignore list
+Each entry is an absolute path (file or folder). Entries are matched against level-0 items at the start of every run. Persisted across launches.
+
+### Partitioning
+A *Partition item limit* greater than zero caps how many level-0 items go into each bucket folder. Layout becomes:
+
 ```
-\Destination\MMM yyyy\<ItemName>
-```
-
-### Skip shortcuts (.lnk/.url + symlink/junction avoidance)
-When enabled:
-- Skips transferring `*.lnk` and `*.url` files.
-- Does not follow directory links during traversal.
-- Skips linked directories (symbolic links / reparse points) by skipping the subtree.
-
-### Partitioning (Partition item limit)
-Partitions are based on **level‑0 item count**.
-
-Folder layout:
-```
-\Destination\MMM yyyy\P1\<ItemName>
-\Destination\MMM yyyy\P2\<ItemName>
+Destination/MMM yyyy/P1/<item>
+Destination/MMM yyyy/P2/<item>
 ...
 ```
 
-Behavior:
-- If **limit <= 0**: partitioning is disabled (no `P#` folder).
-- If **limit > 0**: the first `limit` level‑0 items for a given date bucket go to `P#`, then the next `limit` go to the next `P#`, etc.
+On re-runs the next partition index is `max(existing P#) + 1` per bucket.
 
-#### Re-run rule (do not reuse existing partitions)
-On a re-run, for each date bucket directory:
-- If `P1`, `P2`, ... already exist, the run starts at **(max existing P + 1)**.
-- New items are never placed into an already-existing `P#` for that same date bucket.
-
-Example:
-- limit = 100
-- `\Destination\MMM yyyy\P1` and `P2` already exist
-- the next run starts at `P3` (first 100 items -> `P3`, next 100 -> `P4`, ...)
-
-### Decompression (7‑Zip)
-When enabled, after transfer of a supported archive (`.rar/.7z/.zip`), the app runs 7‑Zip to decompress the archive into the same final destination path used by the transfer.
-
-### Window behavior
-The main window is fixed-size (non-resizable).
+### Decompression
+Archives (`.rar`, `.7z`, `.zip`) get decompressed in-place after transfer; the original archive is then moved into the extracted folder. If a file with the same name already exists in the extract dir, the archive copy is suffixed `(1)`, `(2)`, …

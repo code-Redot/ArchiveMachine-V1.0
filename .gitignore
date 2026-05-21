@@ -1,10 +1,14 @@
 # Build outputs
 /target/
 /build/
+/dist/
 
 # IDE files
 .idea/
 *.iml
+.vscode/
+.claude/
+.gradle/
 
 # Compiled classes
 *.class
@@ -12,3 +16,6 @@
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Bundled 7-Zip installer (not committed; see src/main/resources/installers/README.txt)
+src/main/resources/installers/7z-installer.exe
